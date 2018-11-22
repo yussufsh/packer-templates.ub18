@@ -7,6 +7,10 @@ variables:
   gce_project_id: "{{ env `GCE_PROJECT_ID` }}"
   image_name: travis-ci-opal-xenial-{{ timestamp }}-<%= git_desc %>
   openstack_source_image_name: "{{ env `OS_SOURCE_IMAGE_XENIAL` }}"
+  os_user_domain_name: "{{ env `OS_USER_DOMAIN_NAME` }}"
+  os_ssh_user: "{{ env `OS_SSH_USER` }}"
+  os_ssh_key: "{{ env `OS_SSH_KEY` }}"
+  os_ssh_key_path: "{{ env `OS_SSH_KEY_PATH` }}"
   travis_cookbooks_branch: "{{ env `TRAVIS_COOKBOOKS_BRANCH` }}"
   travis_cookbooks_edge_branch: master
   travis_cookbooks_sha: "{{ env `TRAVIS_COOKBOOKS_SHA` }}"
@@ -42,7 +46,7 @@ builders:
   run_command:
   - -d
   - -v
-  - <%= Dir.pwd %>/tmp/packer-builder-tmp:/tmp
+#  - <%= Dir.pwd %>/tmp/packer-builder-tmp:/tmp
   - --privileged=true
   - --storage-opt=size=15G
   - "{{ .Image }}"
@@ -51,16 +55,19 @@ builders:
 # Openstack builds disabled for failing with an error that's not possible to debug
 # until a fix for the Packer error reporting is released:
 # https://github.com/travis-ci/packer-templates/issues/555
-# - type: openstack
-#   name: openstack
-#   flavor: m1.medium-travis-ci
-#   image_name: "{{ user `image_name` }}"
-#   ssh_username: ubuntu
-#   networks:
-#   <% ENV['OS_NETWORKS'].to_s.split(',').map(&:strip).each do |network| %>
-#   - <%= network %>
-#   <% end %>
-#   source_image_name: "{{ user `openstack_source_image_name` }}"
+- type: openstack
+  name: openstack
+  flavor: m1.large
+  image_name: "{{ user `image_name` }}"
+  ssh_username: "{{ user `os_ssh_user` }}"
+  ssh_keypair_name: "{{ user `os_ssh_key` }}"
+  ssh_private_key_file: "{{ user `os_ssh_key_path`}}"
+  domain_name: "{{ user `os_user_domain_name`}}"
+  networks:
+  <% ENV['OS_NETWORKS'].to_s.split(',').map(&:strip).each do |network| %>
+  - <%= network %>
+  <% end %>
+  source_image_name: "{{ user `openstack_source_image_name` }}"
 provisioners:
 - type: shell
   inline: sleep 10
@@ -76,9 +83,9 @@ provisioners:
   pause_before: 5s
   only:
   - docker
-- type: file
-  source: tmp/git-meta
-  destination: /var/tmp/git-meta
+#- type: file
+#  source: tmp/git-meta
+#  destination: /var/tmp/git-meta
 - type: file
   source: packer-assets/ubuntu-xenial-normal-purge.txt
   destination: /var/tmp/purge.txt
@@ -87,7 +94,7 @@ provisioners:
   destination: /var/tmp/packages.txt
   only:
   - googlecompute
-  # - openstack
+  - openstack
 - type: file
   source: packer-assets/ubuntu-xenial-ci-opal-docker-packages.txt
   destination: /var/tmp/packages.txt
@@ -148,7 +155,7 @@ provisioners:
   - packer-scripts/ensure-travis-user
   - packer-scripts/purge
   - packer-scripts/disable-apparmor
-  - packer-scripts/run-serverspecs
+  #- packer-scripts/run-serverspecs
   - packer-scripts/test-system-info-output
   - packer-scripts/dump-dpkg-manifest
   - packer-scripts/create-bin-lib-checksums

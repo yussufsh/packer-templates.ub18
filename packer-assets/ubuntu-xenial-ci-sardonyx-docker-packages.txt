@@ -1,5 +1,9 @@
-chromium-browser
-emacs-nox
-libtidy-dev
+bridge-utils
+ccache
+emacs
+hashdeep
+libmysqlclient-dev
+locales
+mysql-client
 postgresql-client
 uuid-dev
